@@ -57,11 +57,13 @@ pub fn handle_participate_in_ladder(ctx: Context<ParticipateInLadder>, amount: u
         return Err(LadderErrorCode::LessThanMinimumParticipation.into());
     }
 
+    let mut adjusted_amount = amount;
     // amount must be less than the maximum
     let active_participation = ctx.accounts.participant_information.participation_lamports;
+
     if active_participation + amount > MAXIMUM_PARTICIPATION_SOL {
-        msg!("Amount must be less than the maximum participation");
-        return Err(LadderErrorCode::ExceedsMaximumParticipation.into());
+        // adjusting the amount to the maximum participation instead of rejecting
+        adjusted_amount = MAXIMUM_PARTICIPATION_SOL - active_participation;
     }
 
     system_program::transfer(
@@ -72,7 +74,7 @@ pub fn handle_participate_in_ladder(ctx: Context<ParticipateInLadder>, amount: u
                 to: ctx.accounts.multisig.to_account_info(),
             },
         ),
-        amount,
+        adjusted_amount,
     )?;
 
     // increasing the participant participation
@@ -80,7 +82,7 @@ pub fn handle_participate_in_ladder(ctx: Context<ParticipateInLadder>, amount: u
         .accounts
         .participant_information
         .participation_lamports
-        .checked_add(amount)
+        .checked_add(adjusted_amount)
         .unwrap();
 
     // increasing the liquidity in the ladder information
@@ -88,7 +90,7 @@ pub fn handle_participate_in_ladder(ctx: Context<ParticipateInLadder>, amount: u
         .accounts
         .ladder_information
         .liquidity_lamports
-        .checked_add(amount)
+        .checked_add(adjusted_amount)
         .unwrap();
 
     Ok(())
