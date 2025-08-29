@@ -63,7 +63,12 @@ pub fn handle_participate_in_ladder(ctx: Context<ParticipateInLadder>, amount: u
 
     if active_participation + amount > MAXIMUM_PARTICIPATION_SOL {
         // adjusting the amount to the maximum participation instead of rejecting
-        adjusted_amount = MAXIMUM_PARTICIPATION_SOL - active_participation;
+        adjusted_amount = MAXIMUM_PARTICIPATION_SOL.saturating_sub(active_participation);
+
+        if adjusted_amount == 0 {
+            msg!("Maximum participation limit already reached");
+            return Err(LadderErrorCode::ExceedsMaximumParticipation.into());
+        }
     }
 
     system_program::transfer(
