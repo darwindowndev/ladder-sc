@@ -1,5 +1,6 @@
 use crate::{
-    addresses::ADMIN_PUBKEY, pda::LADDER_SEED, state::ladder_information::LadderInformation,
+    addresses::ADMIN_PUBKEY, errors::LadderErrorCode, pda::LADDER_SEED,
+    state::ladder_information::LadderInformation,
 };
 use anchor_lang::prelude::*;
 
@@ -17,6 +18,12 @@ pub struct ResolveLadder<'info> {
 }
 
 pub fn handle_resolve_ladder(ctx: Context<ResolveLadder>) -> Result<()> {
+    // check if the ladder is already finished
+    require!(
+        !ctx.accounts.ladder_information.is_ladder_finished,
+        LadderErrorCode::AlreadyFinished
+    );
+
     msg!("Ladder resolution: {:?}", ctx.program_id);
     let clock = Clock::get()?;
     let block_timestamp = clock.unix_timestamp;
